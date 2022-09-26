@@ -1,0 +1,10 @@
+{
+  "files.exclude": {
+      "**/*.o": true,
+      "**/*.a": true
+    },
+    "files.associations": {
+      "*.h": "c",
+      "chrono": "cpp"
+    }
+}

@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "mremu - release",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/mremu",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "lldb",
+            "preLaunchTask": "Make Release"
+        },
+        {
+            "name": "mremu - debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/mremu-debug",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "lldb",
+            "preLaunchTask": "Make Debug"
+        }
+    ]
+}
