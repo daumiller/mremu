@@ -21,7 +21,7 @@ typedef struct {
 
 void uiSingleStep(void* data) {
   app_context* context = (app_context*)data;
-  context->rosco->execute();
+  context->rosco->run(1);
   context->disassembly->update();
   context->registers->update();
   context->memory->update();
@@ -38,7 +38,6 @@ void uiRedraw(void* data) {
 
 int main(int argc, char** argv) {
   app_context context = { NULL, NULL, NULL, NULL, NULL };
-  // context.rosco = new RoscoM68K("rom.bin");
   context.rosco = new RoscoM68K("rosco_m68k.rom");
   context.rosco->reset();
 
@@ -48,8 +47,8 @@ int main(int argc, char** argv) {
   tb_set_output_mode(TB_OUTPUT_TRUECOLOR);
   tb_set_clear_attrs(0xFFFFFF, 0x444444);
 
-  context.disassembly = new InterfaceDisassembly(context.rosco, 6, 4, 0, 0, 40);
-  context.registers   = new InterfaceRegisters(context.rosco, 40, 0);
+  context.disassembly = new InterfaceDisassembly(context.rosco, 6, 4, 0, 0, 48);
+  context.registers   = new InterfaceRegisters(context.rosco, 49, 0);
   context.memory      = new InterfaceMemory(context.rosco, 0, 13, 11);
   context.button_step = new InterfaceButton(0, 24, 16, 3, "&Step", uiSingleStep, &context);
 

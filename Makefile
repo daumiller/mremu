@@ -17,7 +17,7 @@ CPP_DEBUG_OBJS = $(CPP_OBJS:.o=.debug.o)
 
 # ===============================================
 
-all: rom mremu
+all: mremu
 
 release: mremu
 

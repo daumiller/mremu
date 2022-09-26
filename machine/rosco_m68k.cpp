@@ -131,8 +131,8 @@ void RoscoM68K::addressExtentsRam(uint32_t* lowest, uint32_t* highest) {
 }
 
 void RoscoM68K::addressExtentsRom(uint32_t* lowest, uint32_t* highest) {
-  if(lowest ) { *lowest  = 0xFC0000; }
-  if(highest) { *highest = 0xFFFFFF; }
+  if(lowest ) { *lowest  = 0xE00000; }
+  if(highest) { *highest = 0xEFFFFF; }
 }
 
 uint8_t RoscoM68K::busRead(uint32_t address) {

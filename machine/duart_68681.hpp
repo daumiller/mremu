@@ -21,6 +21,8 @@ public:
   bool pollForInterrupt() override;
 
 protected:
+  bool    interrupt_request;
+  uint8_t interrupt_vector_register;
 };
 
 /*

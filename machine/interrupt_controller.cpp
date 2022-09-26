@@ -26,6 +26,7 @@ bool InterruptController::sourceAdd(InterruptSource* source, uint8_t level) {
   if(this->source[index]) { return false; }
   this->source[index] = source;
   this->source_enabled[index] = true;
+  return true;
 }
 
 bool InterruptController::sourceRemove(InterruptSource* source) {
