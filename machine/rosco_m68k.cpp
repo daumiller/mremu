@@ -83,7 +83,7 @@ uint8_t RoscoM68K::read8(uint32_t address) {
       if(address & 1) {
         // FF_00_00-FF_00_20 @ odd == DUART
         address = ((address - 0xF00000) >> 1) & 0xFF;
-        return this->duart->read((uint8_t)address);
+        return this->duart->busRead((uint8_t)address);
       }
     }
     return 0x00;
@@ -106,7 +106,7 @@ void RoscoM68K::write8(uint32_t address, uint8_t value) {
       if(address & 1) {
         // FF_00_00-FF_00_20 @ odd == DUART
         address = ((address - 0xF00000) >> 1) & 0xFF;
-        this->duart->write((uint8_t)address, value);
+        this->duart->busWrite((uint8_t)address, value);
       }
     }
     return;
@@ -138,19 +138,3 @@ void RoscoM68K::addressExtentsRom(uint32_t* lowest, uint32_t* highest) {
 uint8_t RoscoM68K::busRead(uint32_t address) {
   return this->read8(address);
 }
-
-/*
-Address Layout
-  |  begin   |   end    |  range   |   size   |  description    |
-  |----------|----------|----------|----------|-----------------|
-  | 00_00_00 | 00_0F_FF | 00_10_00 |    4 KiB | Vector Table    |
-  | 00_00_00 | 0F_FF_FF | 10_00_00 | 1024 KiB | On-board RAM    |
-  | 10_00_00 | DF_FF_FF | D0_00_00 |   13 MiB |                 |
-  | E0_00_00 | EF_FF_FF | 10_00_00 | 1024 KiB | On-board ROM    |
-  | F0_00_00 | FF_FF_FF | 10_00_00 | 1024 KiB | I/O Space       |
-
-I/O Layout
-  |  begin   |   end    | odd/even |     description      | 
-  |----------|----------|----------|----------------------|
-  | F8_00_00 | F8_00_1F |    odd   |    68681 DUART       | // XR68C681P provides UART, Timers and SD Card/SPI/GPIO
-*/

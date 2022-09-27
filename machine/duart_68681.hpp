@@ -2,28 +2,88 @@
 
 extern "C" {
 #include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdbool.h>
 }
 #include "interrupt_source.hpp"
+#include "duart_68681_uart.hpp"
 
+#define DUART_68681_PORT_A 0
+#define DUART_68681_PORT_B 1
+
+/// @brief callback function used by serial ports to transmit data
+typedef void (*serialTransmit)(uint8_t port, uint8_t transmit_data, void* callback_data);
+
+/**
+ * XC68C681 Dual UART Controller (plus Counter/Timer & GPIO)
+ */
 class Duart68681 : public InterruptSource {
 public:
   Duart68681();
   ~Duart68681();
 
-  uint8_t read(uint8_t address);
-  void write(uint8_t address, uint8_t data);
+  /**
+   * Read data byte from bus
+   * @param address relative address to read from
+   * @returns data byte read
+   */
+  uint8_t busRead(uint8_t address);
 
-  void reset() override;
+  /** Write data byte to bus address
+   * @param address relative address to write to
+   * @param data data byte to write
+   */
+  void busWrite(uint8_t address, uint8_t data);
+
+  /**
+   * Receive data on serial port
+   * @param port port to receive on (DUART_68681_PORT_A or DUART_68681_PORT_B)
+   * @param data data byte to receive
+   */
+  void serialPortReceive(uint8_t port, uint8_t data);
+
+  /**
+   * Set transmitter callback for serial port
+   * @param port port to receive on (DUART_68681_PORT_A or DUART_68681_PORT_B)
+   * @param transmitter callback to use for this port
+   * @param callback_data extra data to pass when callback is called
+   */
+  void setSerialTransmitter(uint8_t port, serialTransmit transmitter, void* callback_data);
+
+  /**
+   * Set input port values
+   * @param value 6 bit value (0-63) to set on input port
+   */
+  void setInputPort(uint8_t value);
+
+  /**
+   * Read output port values
+   * @returns value 8 bit output port value
+   */
+  uint8_t readOutputPort();
+
+  // InterrupSource implementation
+  void    reset() override;
   uint8_t readVector() override;
-  bool pollForInterrupt() override;
+  bool    pollForInterrupt() override;
 
 protected:
-  bool    interrupt_request;
+  bool    standby_mode;
   uint8_t interrupt_vector_register;
+  uint8_t interrupt_mask_regsiter;
+  uint8_t getIsr();
+
+  Duart68681Uart port_a;
+  Duart68681Uart port_b;
+
+  uint8_t input_port_value;
+  uint8_t input_port_changes;
+  uint8_t auxiliary_control;
+
+  uint16_t counter_timer;
+  uint8_t output_port;
 };
+
+// TODO: add SPI interface
 
 /*
   XR68C681 Dual UART + GPIO + Counter/Timer
@@ -61,6 +121,53 @@ protected:
     Counter/Timer Lower Byte Register (CTLR)
     Output Port Register (OPR)
 
+  Auxiliary Control Register
+    lower nibble controls whether input port pins trigger interrupts
+    bits 4-6 used by counter/timer
+    bit 7 determines which set of baud rates to use
+
+  Crystal clock source setup between X2 & X1/CLK pins.
+    assuming this is 3.6864 MHz (until my board arrives to verify)
+
+  Counter/Timer
+    16 bit down-counter
+    ACR bits 4-6 determine counter/timer mode
+      | 6 5 4 | mode    | timing source                              |
+      | 0 0 0 | counter | external input IP2                         |
+      | 0 0 1 | counter | 1x clock of chA transmitter ( == chA rate) |
+      | 0 1 0 | counter | 1x clock of chB transmitter ( == chB baud) |
+      | 1 0 0 | timer   | external input IP2                         |
+      | 1 0 1 | timer   | external input IP2, divided by 16          |
+      | 1 1 0 | timer   | xtal input                                 |
+      | 1 1 1 | timer   | xtal input, divided by 16                  |
+    Timer Frequency
+      source_freq / (2 * ((CTUR << 8) | CTLR))
+    Baud Rate
+      source_freq / (32 * ((CTUR << 8) | CTLR))
+
+  Input Port
+    IP0 - CTSA (serial port A signal, clear to send)
+    IP1 - CTSB (serial port B signal, clear to send)
+    IP2 - SPIMISO
+    IP3 - GND
+    IP4 - n/c
+    IP5 - n/c
+  Output Port
+    OP0 - RTSA (serial port A signal, ready to send)
+    OP1 - RTSB (serial port B signal, ready to send)
+    OP2 - SPICS
+    OP3 - red LED
+    OP4 - SPICLK
+    OP5 - green LED
+    OP6 - SPIMOSI
+    OP7 - SPICS2
+  SPI
+    CS1  output:2
+    CS2  output:7
+    CLK  output:4
+    MOSI output:6
+    MISO input:2
+
   Register Address Map
   | Address | Mode  | Name       | Description               |
   |---------|-------|------------|---------------------------|
@@ -68,7 +175,7 @@ protected:
   |   00    | write | MR1A, MR2A | mode channel A            | can be reset to MR1n by a "RESET MR POINTER" command
   |   01    | read  |     SRA    | status channel A          |
   |   01    | write |    CSRA    | clock select channel A    |
-  |   02    | read  |    MISR    | masked inttertup status   |
+  |   02    | read  |    MISR    | masked interrupt status   |
   |   02    | write |     CRA    | command channel A         |
   |   03    | read  |    RHRA    | rx holding channel A      |
   |   03    | write |    THRA    | tx holding channel A      |

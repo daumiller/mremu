@@ -7,6 +7,7 @@ CPP_LIBS  = -L./depends/moira -lmoira -lstdc++ -L./depends/termbox2 -ltermbox
 CPP_OBJS  = machine/rosco_m68k.o           \
             machine/interrupt_controller.o \
 						machine/duart_68681.o          \
+						machine/duart_68681_uart.o     \
             interface/disassembly.o        \
 						interface/registers.o          \
 						interface/memory.o             \
