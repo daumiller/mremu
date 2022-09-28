@@ -76,6 +76,12 @@ public:
    **/
   uint8_t busRead(uint32_t address);
 
+  // internal state
+  uint8_t* ram;
+  uint8_t* rom;
+  InterruptController* interrupt_controller;
+  Duart68681* duart;
+
 protected:
   // Moira overrides for bus accesses, and forward IRQ related things to our interrupt controller
   uint8_t  read8  (uint32_t address) override;
@@ -83,12 +89,6 @@ protected:
   void     write8 (uint32_t address, uint8_t value) override;
   void     write16(uint32_t address, uint16_t value) override;
   uint16_t readIrqUserVector(uint8_t level) const override;
-
-  // internal state
-  uint8_t* ram;
-  uint8_t* rom;
-  InterruptController* interrupt_controller;
-  Duart68681* duart;
 };
 
 /*

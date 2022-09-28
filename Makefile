@@ -3,16 +3,17 @@ ASM_FLAGS = -m68010 -no-opt -no-fpu -Fbin
 
 COMPILER  = clang
 CPP_FLAGS = -std=c++20 -I./depends
-CPP_LIBS  = -L./depends/moira -lmoira -lstdc++ -L./depends/termbox2 -ltermbox
+CPP_LIBS  = -L./depends/moira -lmoira -lstdc++ -L./depends/termbox2 -ltermbox -L./depends/vterm -lvterm
 CPP_OBJS  = machine/rosco_m68k.o           \
             machine/interrupt_controller.o \
-						machine/duart_68681.o          \
-						machine/duart_68681_uart.o     \
+            machine/duart_68681.o          \
+            machine/duart_68681_uart.o     \
             interface/disassembly.o        \
-						interface/registers.o          \
-						interface/memory.o             \
-						interface/button.o             \
-						interface/helpers.o            \
+            interface/registers.o          \
+            interface/memory.o             \
+            interface/terminal.o           \
+            interface/button.o             \
+            interface/helpers.o            \
             main.o
 CPP_DEBUG_OBJS = $(CPP_OBJS:.o=.debug.o)
 
