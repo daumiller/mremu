@@ -1,4 +1,5 @@
 #include "rosco_m68k.hpp"
+#include <moira/MoiraTypes.h>
 
 RoscoM68K::RoscoM68K(const char* rom_path) : moira::Moira() {
   FILE* rom_file = fopen(rom_path, "rb");
@@ -18,9 +19,10 @@ RoscoM68K::RoscoM68K(const char* rom_path) : moira::Moira() {
   }
   fclose(rom_file);
 
+  this->irqMode = moira::IrqMode::IRQ_USER;
   this->interrupt_controller = new InterruptController();
   this->duart = new Duart68681();
-  this->interrupt_controller->sourceAdd(this->duart, 4); // TODO: what is the actual level?
+  this->interrupt_controller->sourceAdd(this->duart, 4); // DUAIRQ == IRQ4
 }
 
 RoscoM68K::~RoscoM68K() {

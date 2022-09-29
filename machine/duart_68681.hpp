@@ -3,6 +3,7 @@
 extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
 }
 #include "interrupt_source.hpp"
 #include "duart_68681_uart.hpp"
@@ -67,6 +68,15 @@ public:
   bool    pollForInterrupt() override;
 
 protected:
+  void timerStart();
+  void timerStop();
+  bool timerCheckInterrupt();
+  bool timer_started;
+  bool timer_cleared;
+  time_t timer_interrupt_current;
+  time_t timer_interrupt_next;
+  time_t timer_interval;
+
   bool    standby_mode;
   uint8_t interrupt_vector_register;
   uint8_t interrupt_mask_regsiter;

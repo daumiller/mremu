@@ -20,6 +20,9 @@ typedef struct {
   InterfaceTerminal*    terminal_a;
   InterfaceButton*      button_step;
   InterfaceButton*      button_multi;
+  InterfaceButton*      button_run;
+  InterfaceButton*      button_reset;
+  bool                  free_run;
 } app_context;
 
 static void uiSingleStep(void* data) {
@@ -32,10 +35,15 @@ static void uiSingleStep(void* data) {
 
 static void uiMultiStep(void* data) {
   app_context* context = (app_context*)data;
-  context->rosco->run(5000);
+  context->rosco->run(100);
   context->disassembly->update();
   context->registers->update();
   context->memory->update();
+}
+
+static void uiFreeRun(void* data) {
+  app_context* context = (app_context*)data;
+  context->free_run = !context->free_run;
 }
 
 static void uiRedraw(void* data) {
@@ -43,26 +51,45 @@ static void uiRedraw(void* data) {
   tb_clear();
   context->button_step->update();
   context->button_multi->update();
+  context->button_run->update();
+  context->button_reset->update();
   context->disassembly->update();
   context->registers->update();
   context->memory->update();
   context->terminal_a->update();
 }
 
-static uint8_t rosco_serial_buffer;
-static void roscoSerialOutput(uint8_t port, uint8_t transmit_data, void* callback_data) {
-  // tb_shutdown();
-  // printf("\n\n\nroscoSerialOutput -- port:%d, data:%d (%c)\n\n", port, transmit_data, (char)transmit_data);
-  // exit(-1);
+static void uiReset(void* data) {
+  app_context* context = (app_context*)data;
+  context->rosco->reset();
+  uiRedraw(data);
+}
 
+static void uiTerminalEvent(uint32_t event_data, void* callback_data) {
   app_context* context = (app_context*)callback_data;
-  rosco_serial_buffer = transmit_data;
-  context->terminal_a->input(&rosco_serial_buffer, 1);
+  context->rosco->duart->serialPortReceive(DUART_68681_PORT_A, (uint8_t)event_data);
+}
+
+static void roscoSerialOutput(uint8_t port, uint8_t transmit_data, void* callback_data) {
+  app_context* context = (app_context*)callback_data;
+  context->terminal_a->input(&transmit_data, 1);
 }
 
 int main(int argc, char** argv) {
-  app_context context = { NULL, NULL, NULL, NULL, NULL, NULL };
-  context.rosco = new RoscoM68K("rosco_m68k.rom");
+  app_context context = {
+    .rosco        = NULL,
+    .disassembly  = NULL,
+    .registers    = NULL,
+    .memory       = NULL,
+    .terminal_a   = NULL,
+    .button_step  = NULL,
+    .button_multi = NULL,
+    .button_run   = NULL,
+    .button_reset = NULL,
+    .free_run     = false,
+  };
+  // context.rosco = new RoscoM68K("rosco_m68k.rom");
+  context.rosco = new RoscoM68K("rom.bin");
   context.rosco->reset();
   context.rosco->duart->setSerialTransmitter(DUART_68681_PORT_A, roscoSerialOutput, &context);
 
@@ -72,33 +99,59 @@ int main(int argc, char** argv) {
   tb_set_output_mode(TB_OUTPUT_TRUECOLOR);
   tb_set_clear_attrs(0xFFFFFF, 0x444444);
 
-  context.disassembly = new InterfaceDisassembly(context.rosco, 6, 4, 0, 0, 48);
-  context.registers   = new InterfaceRegisters(context.rosco, 49, 0);
-  context.memory      = new InterfaceMemory(context.rosco, 0, 13, 11);
-  context.terminal_a  = new InterfaceTerminal(80, 0, 80, 24);
-  context.button_step = new InterfaceButton(0, 24, 16, 3, "&Step", uiSingleStep, &context);
-  context.button_multi = new InterfaceButton(18, 24, 16, 3, "Step 5K", uiMultiStep, &context);
+  context.disassembly  = new InterfaceDisassembly(context.rosco, 6, 4, 0, 0, 48);
+  context.registers    = new InterfaceRegisters(context.rosco, 49, 0);
+  context.memory       = new InterfaceMemory(context.rosco, 0, 13, 11);
+  context.terminal_a   = new InterfaceTerminal(80, 0, 80, 24);
+  context.button_step  = new InterfaceButton( 0, 24, 16, 3, "&Step",     uiSingleStep, &context);
+  context.button_multi = new InterfaceButton(18, 24, 16, 3, "Step &100", uiMultiStep,  &context);
+  context.button_run   = new InterfaceButton(36, 24, 16, 3, "&Run",      uiFreeRun,    &context);
+  context.button_reset = new InterfaceButton(54, 24, 16, 3, "Reset",     uiReset,      &context);
+
+  context.terminal_a->setEventForwarder(uiTerminalEvent, &context);
 
   uiRedraw(&context);
 
   while(true) {
     tb_present();
-    tb_poll_event(&ui_event);
 
-    if(ui_event.type == TB_EVENT_RESIZE) {
-      uiRedraw(&context);
-      continue;
+    bool event = true;
+    if(context.free_run) {
+      int result = tb_peek_event(&ui_event, 10);
+      if((result == TB_ERR_NO_EVENT) || (result == TB_ERR_POLL)) { event = false; }
+    } else {
+      int result = tb_poll_event(&ui_event);
+      if((result == TB_ERR_NO_EVENT) || (result == TB_ERR_POLL)) { event = false; }
     }
 
-    if(context.button_step->handleEvent(&ui_event)) { continue; }
-    if(context.button_multi->handleEvent(&ui_event)) { continue; }
-    if(context.memory->handleEvent(&ui_event))      { continue; }
+    if(event) {
+      if(ui_event.type == TB_EVENT_RESIZE) {
+        uiRedraw(&context);
+        continue;
+      }
 
-    // global hotkeys
-    if(ui_event.ch == 's') { uiSingleStep(&context); continue; }
-    if((ui_event.key == TB_KEY_CTRL_Q) && (ui_event.mod & TB_MOD_CTRL)) { break; }
+      if(context.button_step->handleEvent(&ui_event))  { continue; }
+      if(context.button_multi->handleEvent(&ui_event)) { continue; }
+      if(context.button_run->handleEvent(&ui_event))   { continue; }
+      if(context.button_reset->handleEvent(&ui_event)) { continue; }
+      if(context.memory->handleEvent(&ui_event))       { continue; }
+      if(context.terminal_a->handleEvent(&ui_event))   { continue; }
+
+      // global hotkeys
+      if(ui_event.ch == 's') { uiSingleStep(&context); continue; }
+      if((ui_event.key == TB_KEY_CTRL_Q) && (ui_event.mod & TB_MOD_CTRL)) { break; }
+    }
+
+    if(context.free_run) {
+      context.rosco->run(160000);
+      context.disassembly->update();
+      context.registers->update();
+      context.memory->update();
+    }
   }
 
+  delete context.button_reset;
+  delete context.button_run;
   delete context.button_multi;
   delete context.button_step;
   delete context.memory;

@@ -11,9 +11,12 @@ InterfaceTerminal::InterfaceTerminal(int x, int y, int width, int height) {
   this->height = height;
   this->color_background = 0x444444;
   this->color_border     = 0xFFFFFF;
+  this->input_captured   = false;
+  this->event_forwarder      = NULL;
+  this->event_forwarder_data = NULL;
+
   this->vterm = vterm_new(this->height-2, this->width-2);
   vterm_set_utf8(this->vterm, 0);
-
   VTermScreenCallbacks vterm_screen_callbacks = {
     /*
     int (*damage)(VTermRect rect, void *user);
@@ -43,7 +46,9 @@ void InterfaceTerminal::input(uint8_t* data, uint32_t length) {
 }
 
 void InterfaceTerminal::update() {
-  helper_draw_box(this->x, this->y, this->width, this->height, this->color_border, this->color_border, this->color_background, true);
+  uintattr_t color_border_foreground = this->input_captured ? 0x884488 : this->color_border;
+  uintattr_t color_border_background = this->input_captured ? 0xBBBBFF : this->color_background;
+  helper_draw_box(this->x, this->y, this->width, this->height, color_border_foreground, color_border_foreground, color_border_background, true);
 
   int rows = this->height - 2;
   int cols = this->width  - 2;
@@ -51,16 +56,35 @@ void InterfaceTerminal::update() {
   VTermScreenCell cell;
   uintattr_t color_fg;
   uintattr_t color_bg;
+  VTermColor vt_color_fg;
+  VTermColor vt_color_bg;
   for(int row=0; row<rows; ++row) {
     for(int col=0; col<cols; ++col) {
       VTermPos cell_position = { .row = row, .col = col };
       vterm_screen_get_cell(this->vterm_screen, cell_position, &cell);
-      color_fg = (((uint32_t)(cell.fg.rgb.red  )) << 16) |
-                 (((uint32_t)(cell.fg.rgb.green)) <<  8) |
-                 (((uint32_t)(cell.fg.rgb.blue )) <<  0) ;
-      color_bg = (((uint32_t)(cell.bg.rgb.red  )) << 16) |
-                 (((uint32_t)(cell.bg.rgb.green)) <<  8) |
-                 (((uint32_t)(cell.bg.rgb.blue )) <<  0) ;
+
+      vt_color_fg = cell.fg;
+      vt_color_bg = cell.bg;
+      if(VTERM_COLOR_IS_DEFAULT_FG(&(vt_color_fg))) { vterm_color_rgb(&vt_color_fg, 255, 255, 255); }
+      if(VTERM_COLOR_IS_DEFAULT_BG(&(vt_color_bg))) { vterm_color_rgb(&vt_color_bg,   0,   0,   0); }
+      if(VTERM_COLOR_IS_INDEXED(&(vt_color_fg))) { vterm_screen_convert_color_to_rgb(this->vterm_screen, &vt_color_fg); }
+      if(VTERM_COLOR_IS_INDEXED(&(vt_color_bg))) { vterm_screen_convert_color_to_rgb(this->vterm_screen, &vt_color_bg); }
+
+      // TODO: HACK:
+      // not sure why, but bootloader is writing some text (version string) with a black foreground.
+      // working around this for now by disallowing a black foreground color
+      if((vt_color_fg.rgb.red == 0) && (vt_color_fg.rgb.green == 0) && (vt_color_fg.rgb.blue == 0)) {
+        vt_color_fg.rgb.red   = 64;
+        vt_color_fg.rgb.green = 64;
+        vt_color_fg.rgb.blue  = 64;
+      }
+
+      color_fg = (((uint32_t)(vt_color_fg.rgb.red  )) << 16) |
+                 (((uint32_t)(vt_color_fg.rgb.green)) <<  8) |
+                 (((uint32_t)(vt_color_fg.rgb.blue )) <<  0) ;
+      color_bg = (((uint32_t)(vt_color_bg.rgb.red  )) << 16) |
+                 (((uint32_t)(vt_color_bg.rgb.green)) <<  8) |
+                 (((uint32_t)(vt_color_bg.rgb.blue )) <<  0) ;
       if(cell.attrs.bold     ) { color_fg |= TB_TRUECOLOR_BOLD;      }
       if(cell.attrs.underline) { color_fg |= TB_TRUECOLOR_UNDERLINE; }
       if(cell.attrs.italic   ) { color_fg |= TB_TRUECOLOR_ITALIC;    }
@@ -71,6 +95,61 @@ void InterfaceTerminal::update() {
   }
 }
 
+void InterfaceTerminal::setEventForwarder(terminalEventForwarder forwarder, void* forwarder_callback_data) {
+  this->event_forwarder      = forwarder;
+  this->event_forwarder_data = forwarder_callback_data;
+}
+
 bool InterfaceTerminal::handleEvent(struct tb_event* event) {
+  int x_min = this->x;
+  int y_min = this->y;
+  int x_max = this->x + this->width;
+  int y_max = this->y + this->height;
+
+  // click inside terminal; capture input
+  if(!this->input_captured) {
+    if(event->type != TB_EVENT_MOUSE)   { return false; }
+    if(event->y < y_min)                { return false; }
+    if(event->y > y_max)                { return false; }
+    if(event->x < x_min)                { return false; }
+    if(event->x > x_max)                { return false; }
+    if(event->key != TB_KEY_MOUSE_LEFT) { return false; }
+
+    this->input_captured = true;
+    this->update();
+    return true;
+  }
+
+  // click outside of terminal; release input
+  if(event->type == TB_EVENT_MOUSE) {
+    if((event->y < y_min) || (event->y > y_max) || (event->x < x_min) || (event->x > x_max)) {
+      this->input_captured = false;
+      this->update();
+      return false;
+    }
+  }
+
+  if(event->type == TB_EVENT_KEY) {
+    // pressed escape; release input
+    if(event->key == TB_KEY_ESC) {
+      this->input_captured = false;
+      this->update();
+      return true;
+    }
+
+    // pressed something else; forward it on, if able to
+    if(this->event_forwarder) {
+      if(event->ch) {
+        this->event_forwarder(event->ch, this->event_forwarder_data);
+        return true;
+      }
+      if(event->key == TB_KEY_ENTER) {
+        this->event_forwarder(0x0D, this->event_forwarder_data);
+        this->event_forwarder(0x0A, this->event_forwarder_data);
+        return true;
+      }
+    }
+  }
+
   return false;
 }

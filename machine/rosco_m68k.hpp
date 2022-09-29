@@ -104,5 +104,5 @@ Address Layout
 I/O Layout
   |  begin   |   end    | odd/even |     description      | 
   |----------|----------|----------|----------------------|
-  | F8_00_00 | F8_00_1F |    odd   |    68681 DUART       | // XR68C681P provides UART, Timers and SD Card/SPI/GPIO
+  | F0_00_00 | F0_00_1F |    odd   |    68681 DUART       | // XR68C681P provides UART, Timers and SD Card/SPI/GPIO
 */
