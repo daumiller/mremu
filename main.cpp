@@ -89,7 +89,12 @@ int main(int argc, char** argv) {
     .free_run     = false,
   };
   // context.rosco = new RoscoM68K("rosco_m68k.rom");
-  context.rosco = new RoscoM68K("rom.bin");
+  try {
+    context.rosco = new RoscoM68K("rosco_m68k.rom");
+  } catch(const char* error) {
+    printf("Exception creating rosco instance: %s\n", error);
+    return -1;
+  }
   context.rosco->reset();
   context.rosco->duart->setSerialTransmitter(DUART_68681_PORT_A, roscoSerialOutput, &context);
 
