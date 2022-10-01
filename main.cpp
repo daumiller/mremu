@@ -88,9 +88,11 @@ int main(int argc, char** argv) {
     .button_reset = NULL,
     .free_run     = false,
   };
-  // context.rosco = new RoscoM68K("rosco_m68k.rom");
+
   try {
-    context.rosco = new RoscoM68K("rosco_m68k.rom");
+    // context.rosco = new RoscoM68K("rosco_m68k.rom");
+    // context.rosco = new RoscoM68K("rom.bin");
+    context.rosco = new RoscoM68K("./rom/bootrom");
   } catch(const char* error) {
     printf("Exception creating rosco instance: %s\n", error);
     return -1;

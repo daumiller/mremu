@@ -1,6 +1,3 @@
-ASSEMBLER = depends/vasm/vasmm68k_mot
-ASM_FLAGS = -m68010 -no-opt -no-fpu -Fbin
-
 COMPILER  = clang
 CPP_FLAGS = -std=c++20 -I./depends
 CPP_LIBS  = -L./depends/moira -lmoira -lstdc++ -L./depends/termbox2 -ltermbox -L./depends/vterm -lvterm
@@ -24,13 +21,6 @@ all: mremu
 release: mremu
 
 debug: mremu-debug
-
-# ===============================================
-
-rom: rom.bin
-
-rom.bin: rom.asm
-	$(ASSEMBLER) $(ASM_FLAGS) $^ -o $@
 
 # ===============================================
 

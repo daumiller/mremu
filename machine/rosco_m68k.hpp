@@ -105,4 +105,8 @@ I/O Layout
   |  begin   |   end    | odd/even |     description      | 
   |----------|----------|----------|----------------------|
   | F0_00_00 | F0_00_1F |    odd   |    68681 DUART       | // XR68C681P provides UART, Timers and SD Card/SPI/GPIO
+
+Address mapping at boot:
+  GAL IC 5 Address Decoder creates a BOOT signal, that activates after the first 4 clock cycles after reset,
+  this signal also disables ram/enables rom for reading the first two vectors from ROM addresses instead of RAM
 */
