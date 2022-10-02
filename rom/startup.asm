@@ -118,9 +118,13 @@
 
 .newline_string:
   dc.b $0D, $0A, $00
+  align 2
 .welcome_string:
   dc.b "hello 68k world!", $0D, $0A, $00
+  align 2
 .prompt_string:
   dc.b "command > ", $00
+  align 2
 .ack_string:
   dc.b "processing ", $00
+  align 2

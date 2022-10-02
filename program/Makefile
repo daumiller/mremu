@@ -1,25 +1,23 @@
 C_COMPILER       = m68k-elf-gcc
 ASM_MOT_COMPILER = ../depends/vasm/vasmm68k_mot
 ASM_GNU_COMPILER = m68k-elf-as
-LINKER           = m68k-elf-ld
-LINK_SCRIPT      = bootrom.ld
+LINKER           = ../depends/vlink/vlink
 
 C_OPTIMIZATION = -O0
 C_FLAGS        = -std=c99 -mcpu=68010 -nostdlib -nodefaultlibs \
                  -ffreestanding -nostartfiles -fomit-frame-pointer \
 								 -fno-delete-null-pointer-checks -fno-zero-initialized-in-bss \
-								 $(C_OPTIMIZATION)
-ASM_MOT_FLAGS  = -m68010 -no-opt -no-fpu -Felf
-ASM_GNU_FLAGS  = -march=68010 -mcpu=68010 
-LINK_FLAGS = -T $(LINK_SCRIPT)
+								 $(C_OPTIMIZATION) -mpcrel
+ASM_MOT_FLAGS  = -m68010 -no-opt -no-fpu -Felf -pic
+ASM_GNU_FLAGS  = -march=68010 -mcpu=68010
+LINK_FLAGS     = -T program.ld -b rawbin1
 
 OBJECT_FILES = startup.asm.o \
-               kernel.c.o    \
-							 duart.c.o
+               main.c.o
 
 # ===============================================
 
-all: bootrom
+all: program.bin
 
 # ===============================================
 
@@ -37,13 +35,21 @@ all: bootrom
 
 # ===============================================
 
-bootrom: $(OBJECT_FILES)
-	$(LINKER) $(LINK_FLAGS) $^ -o $@
+program.bin: $(OBJECT_FILES)
+	m68k-elf-ld -T program.ld $^ -o $@
+
+#	$(LINKER) $(LINK_FLAGS) $^ -o $@
 
 # ===============================================
 
-startup-symbols: startup.asm.o
+symbols: startup.asm.o main.c.o
 	m68k-elf-objdump --syms startup.asm.o
+	m68k-elf-objdump --syms main.c.o
+
+disassembly: program.bin
+	../depends/dis68k/dis68k < $^
+
+# ===============================================
 
 clean:
 	rm -f $(OBJECT_FILES)

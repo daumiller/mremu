@@ -97,6 +97,23 @@ int main(int argc, char** argv) {
     printf("Exception creating rosco instance: %s\n", error);
     return -1;
   }
+
+  // <test-user-program>
+  FILE* fin = fopen("./program/program.bin", "rb");
+  uint8_t* destination_a = context.rosco->ram + 0x1338;
+  uint8_t* destination_b = context.rosco->ram + 0xBABE;
+  uint8_t buffer[512];
+  size_t read = fread(buffer, 1, 512, fin);
+  while(read) {
+    memcpy(destination_a, buffer, read);
+    memcpy(destination_b, buffer, read);
+    destination_a += read;
+    destination_b += read;
+    read = fread(buffer, 1, 512, fin);
+  }
+  fclose(fin);
+  // </test-user-program>
+
   context.rosco->reset();
   context.rosco->duart->setSerialTransmitter(DUART_68681_PORT_A, roscoSerialOutput, &context);
 
