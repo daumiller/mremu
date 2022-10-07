@@ -9,7 +9,7 @@ extern void runProgramB();
 void whatShouldWeDo() {
   char temp[128];
 
-  duartWriteString("\r\nWhat should we do today? > ");
+  duartWriteString("\r\n? > ");
   duartReadLine(temp, 127, NULL, true);
 
   if((temp[0] == 'p') && (temp[1] == 'a') && (temp[2] == 0x00)) { __asm__ ("jmp 0x00001338:l"); }
@@ -21,7 +21,7 @@ void whatShouldWeDo() {
 }
 
 void startup() {
-  duartWriteString("=== Hello world of C on 68k! ===\r\n");
+  duartWriteString("=== c startup entry point ===\r\n");
 
   while(true) {
     whatShouldWeDo();

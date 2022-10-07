@@ -120,7 +120,7 @@
   dc.b $0D, $0A, $00
   align 2
 .welcome_string:
-  dc.b "hello 68k world!", $0D, $0A, $00
+  dc.b "asm entry startup", $0D, $0A, $00
   align 2
 .prompt_string:
   dc.b "command > ", $00

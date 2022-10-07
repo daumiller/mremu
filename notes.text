@@ -1,0 +1,109 @@
+notes
+
+Linker Stuff:
+  https://github.com/rosco-m68k/example_programs/blob/master/firmware-2.x/libs/lib/ld/serial/hugerom_rosco_m68k_program.ld
+  https://sourceware.org/binutils/docs/ld/Simple-Assignments.html
+
+checking for overflows
+  when interrupted
+    check stack pointer is not below threshold
+    check known value directly beneath stack area has not been overwrote
+
+Operating System
+  Process
+    uint32_t id
+    uint32_t text_address_minimum
+    uint32_t text_address_maximum
+    uint32_t stack_address_minimum
+    uint32_t stack_address_maximum
+  Heap
+    uint32_t address
+    uint32_t bytes_total
+    uint32_t bytes_used
+    uint32_t bytes_available
+    uint32_t bytes_avaiable_largest_block
+    pages**
+  Device
+    uint8_t type     // DEVICE_COMMUNICATION || DEVICE_STORAGE
+    char[32] name    // 31 + NULL-terminator
+    uint32_t version // ex: driver_id | major | minor | patch
+    uint32_t (*command)(uint32_t command, void* data)
+    uint32_t (*read)(uint8_t* buffer, uint32_t size, bool wait)
+    uint32_t (*write)(uint8_t* buffer, uint32_t size, bool wait)
+  Devices[uint8_t]
+  Kernel Globals
+    processes[]
+    process_active_index
+
+Kernel Functions
+  reset -> disable interrupt, set IVR
+  panic
+  serialInitialize
+  timerInitialize
+  timerTick -> taskSwitch && tickCount
+
+Kernel Interrupt Handlers
+  most  -> processExit || kernel.panic
+  timer -> kernel.timerTick
+
+TRAPs
+  process       : start, yield, exit
+  memory        : allocate, free
+  device        : getCount, getType(idx), get
+  communication : command, read, write
+  storage       : command, read, write
+  file          : open, read, write, close, list, create, modify, delete
+  timer         : ticksSinceReset
+
+
+/* ========================================================================== */
+/*
+  ---------------------------------------------------------------
+                      Bus Address Layout
+  ---------------------------------------------------------------
+  |  begin   |   end    |  range   |   size   |  description    |
+  |----------|----------|----------|----------|-----------------|
+  | 00_00_00 | 0F_FF_FF | 10_00_00 | 1024 KiB | On-board RAM    |
+  | 10_00_00 | DF_FF_FF | D0_00_00 |   13 MiB | (empty)         |
+  | E0_00_00 | EF_FF_FF | 10_00_00 | 1024 KiB | On-board ROM    |
+  | F0_00_00 | FF_FF_FF | 10_00_00 | 1024 KiB | I/O Space       |
+*/
+
+RAM_BEGIN   = 0x000000;
+RAM_END     = 0x0FFFFF;
+RAM_SIZE    = 0x100000; /* 1 MiB RAM */
+EMPTY_BEGIN = 0x100000;
+EMPTY_END   = 0xDFFFFF;
+EMPTY_SIZE  = 0xD00000; /* 13 MiB Empty Space */
+ROM_BEGIN   = 0xE00000;
+ROM_END     = 0xEFFFFF;
+ROM_SIZE    = 0x100000; /* 1 MiB ROM */
+IO_BEGIN    = 0xF00000;
+IO_END      = 0xFFFFFF;
+IO_SIZE     = 0x100000; /* 1 MiB I/O */
+
+/* ========================================================================== */
+  ---------------------------------------------------------------
+                      OS Address Layout
+  ---------------------------------------------------------------
+  |  begin   |   end    |  range   |   size   |  description    |
+  |----------|----------|----------|----------|-----------------|
+  | 00_00_00 | 00_03_FF | 00_04_00 |    1 KiB | Vector Table    | * stored in RAM only so vectors can be rewrote
+  | 00_04_00 | 00_0F_FF | 00_0C_00 |    3 KiB | Kernel Storage  |
+  | 00_10_00 | 00_1F_FF | 00_10_00 |    4 KiB | Kernel Stack    |
+  | 00_20_00 | 03_FF_FF | 03_E0_00 |  248 KiB | Shared Heap     |
+  | 04_00_00 | 0F_FF_FF | 0C_00_00 |  768 KiB | Processes       | * process code & stack (4 KiB stack each)
+*/
+
+VECTOR_TABLE_ADDRESS    = 0x000000;
+VECTOR_TABLE_SIZE       = 0x000400;
+VECTOR_TABLE_COUNT      = 0x000100; /* 256 vector entries */
+KERNEL_STORAGE_ADDRESS  = 0x000400;
+KERNEL_STORAGE_SIZE     = 0x000C00;
+KERNEL_STACK_ADDRESS    = 0x001000;
+KERNEL_STACK_SIZE       = 0x001000;
+KERNEL_STACK_POINTER    = 0x002000; /* top of kernel stack */
+HEAP_STORAGE_ADDRESS    = 0x002000;
+HEAP_STORAGE_SIZE       = 0x03E000;
+PROCESS_STORAGE_ADDRESS = 0x040000;
+PROCESS_STORAGE_SIZE    = 0x0C0000;

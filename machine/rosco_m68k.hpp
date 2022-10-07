@@ -95,7 +95,7 @@ protected:
 Address Layout
   |  begin   |   end    |  range   |   size   |  description    |
   |----------|----------|----------|----------|-----------------|
-  | 00_00_00 | 00_0F_FF | 00_10_00 |    4 KiB | Vector Table    |
+  | 00_00_00 | 00_03_FF | 00_04_00 |    1 KiB | Vector Table    |
   | 00_00_00 | 0F_FF_FF | 10_00_00 | 1024 KiB | On-board RAM    |
   | 10_00_00 | DF_FF_FF | D0_00_00 |   13 MiB |                 |
   | E0_00_00 | EF_FF_FF | 10_00_00 | 1024 KiB | On-board ROM    |
