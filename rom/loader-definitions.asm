@@ -21,6 +21,10 @@
 .VECTOR_USER_BASE   equ 64
 .VECTOR_USER_MAX    equ 255
 
+.SYSTEM_INFORMATION_BLOCK_BEGIN equ $000400
+.SYSTEM_INFORMATION_BLOCK_SIZE  equ $000010
+.PROGRAM_BEGIN equ $000410
+
 ; bus address = DUART_BEGIN + (relative_address * 2) + 1
 .DUART_REG_MRA   equ $F00001 ; chA mode (MR1A/MR2A)      | read/write
 .DUART_REG_SRA   equ $F00003 ; chA status                | read

@@ -13,8 +13,8 @@ ASM_MOT_FLAGS  = -m68010 -no-opt -no-fpu -Felf
 ASM_GNU_FLAGS  = -march=68010 -mcpu=68010 
 LINK_FLAGS = -T $(LINK_SCRIPT)
 
-OBJECT_FILES = startup.asm.o \
-               kernel.c.o    \
+OBJECT_FILES = loader-startup.asm.o \
+               loader-main.c.o      \
 							 duart.c.o
 
 # ===============================================

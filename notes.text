@@ -107,3 +107,31 @@ HEAP_STORAGE_ADDRESS    = 0x002000;
 HEAP_STORAGE_SIZE       = 0x03E000;
 PROCESS_STORAGE_ADDRESS = 0x040000;
 PROCESS_STORAGE_SIZE    = 0x0C0000;
+
+==========================================
+
+Traps
+  bool uart_read_available(uint8_t a_or_b)
+  void uart_read(uint8_t a_or_b, uint8_t* address, uint32_t size)
+  uint32_t uart_read_line(uint8_t a_or_b, uint8_t* address)
+  bool uart_write_ready(uint8_t a_or_b)
+  void uart_write(uint8_t a_or_b, uint8_t* address, uint32_t size)
+  void uart_write_string(uint8_t* a_or_b, uint8_t* address)
+
+System Information Block
+  uint32_t ram_begin
+  uint32_t ram_size
+  uint32_t program_begin
+  uint32_t program_size
+  uint32_t stack_top
+
+Boot ROM
+  setup stack pointer to top of ram
+  disable interrupts
+  copy vector table
+  check ram size - print status
+  initialize duart - print status
+  prompt for program load (over uart)
+    load program at entry point
+    run program with a JSR
+    exiting program returns from JSR, and jumps back to prompt for program load
