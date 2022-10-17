@@ -13,7 +13,9 @@ ASM_GNU_FLAGS  = -march=68010 -mcpu=68010
 LINK_FLAGS     = -T program.ld -b rawbin1
 
 OBJECT_FILES = startup.asm.o \
-               main.c.o
+               main.c.o      \
+               duart.c.o     \
+               sdcard.c.o
 
 # ===============================================
 
@@ -45,6 +47,7 @@ program.bin: $(OBJECT_FILES)
 symbols: startup.asm.o main.c.o
 	m68k-elf-objdump --syms startup.asm.o
 	m68k-elf-objdump --syms main.c.o
+	m68k-elf-objdump --syms duart.c.o
 
 disassembly: program.bin
 	../depends/dis68k/dis68k < $^
@@ -56,6 +59,6 @@ clean:
 	rm -f *.c.s
 
 veryclean: clean
-	rm -f bootrom
+	rm -f program.bin
 
 remake: veryclean all

@@ -44,7 +44,7 @@ DUART_REG_THRB  equ $F00017 ; chB tx holding            | write
 DUART_REG_IVR   equ $F00019 ; interrupt vector          | read/write
 DUART_REG_IP    equ $F0001B ; input port                | read
 DUART_REG_OPCR  equ $F0001B ; output port configuration | write
-DUART_REG_SCC   equ $F0001C ; start counter/timer       | "read" (address triggered)
-DUART_REG_SOPBC equ $F0001C ; set output port bits      | write
+DUART_REG_SCC   equ $F0001D ; start counter/timer       | "read" (address triggered)
+DUART_REG_SOPBC equ $F0001D ; set output port bits      | write
 DUART_REG_STC   equ $F0001F ; stop counter/timer        | "read" (address triggered)
 DUART_REG_COPBC equ $F0001F ; clear output port bits    | write
