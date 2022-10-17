@@ -16,6 +16,31 @@ static void hexString24(uint32_t hex, uint8_t* buffer) {
   }
 }
 
+static void decString(uint32_t dec, uint8_t* buffer) {
+  uint8_t dec_buffer[16];
+  uint8_t digit_number = 0;
+  uint8_t dec_buffer_location = 15;
+  while(true) {
+    uint32_t digit = dec % 10;
+    dec -= digit;
+    dec /= 10;
+    dec_buffer[dec_buffer_location] = (uint8_t)(digit + '0');
+    if(dec == 0) { break; }
+    dec_buffer_location--;
+    digit_number++;
+    if(digit_number %3 == 0) {
+      dec_buffer[dec_buffer_location] = ',';
+      dec_buffer_location--;
+    }
+  }
+
+  for(uint8_t idx=dec_buffer_location; idx<16; ++idx) {
+    buffer[0] = dec_buffer[idx];
+    buffer++;
+  }
+  buffer[0] = 0x00;
+}
+
 void main(uint32_t startup_location) {
   duartOutput_enable();
 
@@ -30,6 +55,11 @@ void main(uint32_t startup_location) {
   bool has_sdcard = sdCard_initialize(&sdcard, DUART_SPI_B);
   if(has_sdcard) {
     duartSerial_writeString(DUART_SERIAL_A, "Found!\r\n");
+    duartSerial_writeString(DUART_SERIAL_A, "  SD Card Capacity: ");
+    uint8_t decimal_buffer[16];
+    decString(sdcard.size_in_mib, decimal_buffer);
+    duartSerial_writeString(DUART_SERIAL_A, decimal_buffer);
+    duartSerial_writeString(DUART_SERIAL_A, " MiB\r\n");
   } else {
     duartSerial_writeString(DUART_SERIAL_A, "not found\r\n");
   }

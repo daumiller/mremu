@@ -1,7 +1,7 @@
 C_COMPILER       = m68k-elf-gcc
 ASM_MOT_COMPILER = ../depends/vasm/vasmm68k_mot
-ASM_GNU_COMPILER = m68k-elf-as
-LINKER           = ../depends/vlink/vlink
+ASM_GNU_COMPILER = m68k-elf-gcc
+LINKER           = m68k-elf-ld
 
 C_OPTIMIZATION = -O0
 C_FLAGS        = -std=c99 -mcpu=68010 -nostdlib -nodefaultlibs \
@@ -9,13 +9,14 @@ C_FLAGS        = -std=c99 -mcpu=68010 -nostdlib -nodefaultlibs \
 								 -fno-delete-null-pointer-checks -fno-zero-initialized-in-bss \
 								 $(C_OPTIMIZATION) -mpcrel
 ASM_MOT_FLAGS  = -m68010 -no-opt -no-fpu -Felf -pic
-ASM_GNU_FLAGS  = -march=68010 -mcpu=68010
-LINK_FLAGS     = -T program.ld -b rawbin1
+ASM_GNU_FLAGS  = -march=68010 -mcpu=68010 -fno-zero-initialized-in-bss -fpic -mpcrel
+LINK_FLAGS     = -T program.ld
 
 OBJECT_FILES = startup.asm.o \
                main.c.o      \
                duart.c.o     \
-               sdcard.c.o
+               sdcard.c.o    \
+               math.S.o
 
 # ===============================================
 
@@ -29,7 +30,7 @@ all: program.bin
 %.c.o: %.c
 	$(C_COMPILER) $(C_FLAGS) -c $^ -o $@
 
-%.s.o: %.s
+%.S.o: %.S
 	$(ASM_GNU_COMPILER) $(ASM_GNU_FLAGS) -c $^ -o $@
 
 %.c.s: %.c
@@ -38,9 +39,7 @@ all: program.bin
 # ===============================================
 
 program.bin: $(OBJECT_FILES)
-	m68k-elf-ld -T program.ld $^ -o $@
-
-#	$(LINKER) $(LINK_FLAGS) $^ -o $@
+	$(LINKER) $(LINK_FLAGS) $^ -o $@
 
 # ===============================================
 

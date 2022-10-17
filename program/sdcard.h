@@ -18,13 +18,18 @@
 
 typedef struct {
   duart_spi_device spi_device;
-  bool             ready_for_commands;
-  bool             initialization_complete;
-  bool             high_capacity;
+  bool             selected;
+  bool             spi_initialized;
+  bool             card_initialized;
+  uint32_t         size_in_mib;
   uint8_t          last_status_byte;
+  uint8_t          command_buffer[6];
 } SdCard;
 
 bool sdCard_initialize(SdCard* card, duart_spi_device spi_device);
+bool sdCard_select    (SdCard* card);
+bool sdCard_deselect  (SdCard* card);
+
 void sdCard_writeErrorsToSerial(SdCard* card, duart_serial_port serial_port);
 
 #endif // ifdef SD_CARD_HEADER
