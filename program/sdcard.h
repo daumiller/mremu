@@ -29,6 +29,8 @@ typedef struct {
 bool sdCard_initialize(SdCard* card, duart_spi_device spi_device);
 bool sdCard_select    (SdCard* card);
 bool sdCard_deselect  (SdCard* card);
+bool sdCard_read      (SdCard* card, uint32_t block_number, uint8_t* block_buffer);
+bool sdCard_write     (SdCard* card, uint32_t block_number, uint8_t* block_buffer);
 
 void sdCard_writeErrorsToSerial(SdCard* card, duart_serial_port serial_port);
 

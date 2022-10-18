@@ -1,6 +1,9 @@
 #include "duart.h"
 #include "sdcard.h"
 
+// http://www.rjhcoding.com/avrc-sd-interface-4.php
+// http://elm-chan.org/docs/mmc/mmc_e.html
+
 static void hexString24(uint32_t hex, uint8_t* buffer) {
   for(uint8_t idx=0; idx<6; ++idx) {
     uint8_t nibble = (hex & 0xF00000) >> 20;
@@ -81,8 +84,11 @@ static void sdCardSpi_command(SdCard* card, uint8_t command, uint32_t argument, 
 }
 
 static inline bool sdCardSpi_waitForStartToken() {
-  for(uint8_t attempts=0; attempts<255; ++attempts) {
-    if(duartSpi_transferByte(0xFF) == 0xFE) { return true; }
+  uint8_t read_byte;
+  for(uint16_t attempts=0; attempts<4096; ++attempts) { // 100ms time out (very rough; should be at least 100)
+    read_byte = duartSpi_transferByte(0xFF);
+    if(read_byte == 0xFE)       { return true;  } // data start token
+    if((read_byte & 0xF0) == 0) { return false; } // data error token
   }
   return false;
 }
@@ -241,5 +247,37 @@ bool sdCard_initialize(SdCard* card, duart_spi_device spi_device) {
 
   // success!
   card->card_initialized = true;
+  return true;
+}
+
+bool sdCard_read(SdCard* card, uint32_t block_number, uint8_t* block_buffer) {
+  sdCardSpi_command(card, 17, block_number, 0x1);
+  if(card->last_status_byte > 0x00) { return false; }
+  if(!sdCardSpi_waitForStartToken()) { return false; }
+  duartSpi_readBuffer(block_buffer, 512);
+  // ignore CRC bytes
+  duartSpi_transferByte(0xFF);
+  duartSpi_transferByte(0xFF);
+  return true;
+}
+
+bool sdCard_write(SdCard* card, uint32_t block_number, uint8_t* block_buffer) {
+  sdCardSpi_command(card, 24, block_number, 0x1);
+  if(card->last_status_byte > 0x00) { return false; }
+  duartSpi_transferByte(0xFE); // data start token
+  for(uint16_t idx=0; idx<512; ++idx) {
+    duartSpi_transferByte(block_buffer[idx]);
+  }
+  uint8_t response = 0xFF;
+  for(uint16_t attempts=0; attempts<8192; ++attempts) { // 250ms time out (very rough; should be at least 250)
+    response = duartSpi_transferByte(0xFF);
+    if(response != 0xFF) { break; }
+  }
+  if((response & 0x1F) != 0x05) { return false; }
+  for(uint16_t attempts=0; attempts<8192; ++attempts) { // same 250ms time out
+    response = duartSpi_transferByte(0xFF);
+    if(response != 0x00) { break; }
+  }
+  if(response == 0x00) { return false; }
   return true;
 }
